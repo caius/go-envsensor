@@ -12,11 +12,8 @@ func main() {
 	readings := make(chan envsensor.Reading)
 
 	// Grab the readings every second
-	sensor := envsensor.DHTSensor{
-		resultsChan: readings,
-		EmitEvery:   1,
-	}
-	sensor.EmitTo(readings, 1)
+	sensor := envsensor.DHTSensor{}
+	sensor.Start(17, readings, 1)
 
 	go func() {
 		for r := range readings {
@@ -24,7 +21,7 @@ func main() {
 		}
 	}()
 
-	// Wait for stuff to happen
+	// Fake waiting for stuff
 	time.Sleep(time.Second * time.Duration(2))
 	sensor.Stop()
 }
