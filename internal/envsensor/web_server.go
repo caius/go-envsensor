@@ -3,7 +3,9 @@ package envsensor
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"text/template"
 	"time"
 )
 
@@ -26,10 +28,27 @@ func (h *WebServer) handleRoot(w http.ResponseWriter, r *http.Request) {
 func (h *WebServer) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("metric request received")
 
+	const metricsTemplate = `
+{{- if .Temperature -}}
+# TYPE temperature gauge
+temperature {{.Temperature}}
+{{- end}}
+{{ if .Humidity -}}
+# TYPE humidity gauge
+humidity {{.Humidity}}
+{{- end}}
+  `
+
 	if h.currentValue.IsStale() {
 		fmt.Fprintf(w, "\n")
 	} else {
-		fmt.Fprintf(w, "# TYPE temperature gauge\ntemperature %.2f\n# TYPE humidity gauge\nhumidity %.2f\n", h.currentValue.Reading.Temperature, h.currentValue.Reading.Humidity)
+		tmpl, err := template.New("metrics").Parse(metricsTemplate)
+		if err != nil {
+			log.Fatal(err)
+			fmt.Fprintf(w, "\n")
+		}
+
+		tmpl.Execute(w, h.currentValue.Reading)
 	}
 }
 
