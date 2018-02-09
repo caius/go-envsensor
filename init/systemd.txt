@@ -1,0 +1,16 @@
+# Copy to /etc/systemd/system to activate
+#
+
+[Unit]
+Description=envsensor server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/tmp
+ExecStart=/root/go/bin/envsensor --port 8080 --sensor-type 11 --sensor-pin 17
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target
