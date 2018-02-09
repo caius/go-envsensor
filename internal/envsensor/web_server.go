@@ -14,8 +14,10 @@ type WebServer struct {
 
 func (h *WebServer) handleRoot(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("root request received")
+
 	if h.currentValue.IsStale() {
-		json.NewEncoder(w).Encode(Reading{})
+		var s struct{}
+		json.NewEncoder(w).Encode(s)
 	} else {
 		json.NewEncoder(w).Encode(h.currentValue.Reading)
 	}
