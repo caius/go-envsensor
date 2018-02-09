@@ -4,7 +4,7 @@ package envsensor
 // just fake out emitting every time we'd read a sensor instead
 func (s *DHTSensor) readAndEmit() {
 	for _ = range s.ticker.C {
-		s.results <- Reading{
+		s.readingsChan <- Reading{
 			Temperature: 15.2,
 			Humidity:    39.0,
 		}
