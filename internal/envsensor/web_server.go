@@ -61,7 +61,7 @@ func (h *WebServer) subscribeToReadings(readings <-chan Reading) {
 }
 
 // Blocks and listens for http calls
-func (h *WebServer) Start(readings <-chan Reading, cacheDuration time.Duration) {
+func (h *WebServer) Start(readings <-chan Reading, listen string, cacheDuration time.Duration) {
 	// Subscribe to readings & cache them for duration
 	h.cacheDuration = cacheDuration
 	go h.subscribeToReadings(readings)
@@ -70,5 +70,5 @@ func (h *WebServer) Start(readings <-chan Reading, cacheDuration time.Duration) 
 	http.HandleFunc("/", h.handleRoot)
 	http.HandleFunc("/metrics", h.handleMetrics)
 	fmt.Printf("Waiting to answer all your requests on :8080\n")
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(listen, nil)
 }
