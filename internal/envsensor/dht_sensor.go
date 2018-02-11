@@ -1,7 +1,6 @@
 package envsensor
 
 import (
-	"fmt"
 	log "github.com/sirupsen/logrus"
 	"time"
 )
@@ -24,6 +23,16 @@ func NewDHTSensor(version int, pin int, delay time.Duration) DHTSensor {
 	}
 }
 
+// This needs overriding in OS specific files
+// func (s *DHTSensor) readSensor() Reading
+
+// Internal: call readSensor() every Delay seconds and emit reading to readingsChan
+func (s *DHTSensor) readAndEmit() {
+	for _ = range s.ticker.C {
+		s.readingsChan <- s.readSensor()
+	}
+}
+
 // Start emitting sensor readings into `readingsChan` channel.
 //
 // Only reads at most every `Delay` seconds from the sensor
@@ -34,7 +43,6 @@ func (s *DHTSensor) Start(readingsChan chan<- Reading) {
 	}
 
 	s.readingsChan = readingsChan
-	log.Info(s.Delay)
 	s.ticker = time.NewTicker(s.Delay)
 	s.Emitting = true
 
