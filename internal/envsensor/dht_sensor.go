@@ -18,9 +18,9 @@ type DHTSensor struct {
 //
 func NewDHTSensor(version int, pin int, delay time.Duration) DHTSensor {
 	log.WithFields(log.Fields{
-		Version: version,
-		Pin:     pin,
-		Delay:   delay,
+		"version": version,
+		"pin":     pin,
+		"delay":   delay,
 	}).Debug("Creating DHTSensor")
 
 	return DHTSensor{
