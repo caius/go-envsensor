@@ -3,9 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/bhoriuchi/go-bunyan/bunyan"
 	"github.com/caius/go-envsensor/internal/envsensor"
-	"os"
+	log "github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -15,27 +14,12 @@ type Configuration struct {
 	SensorPin     int
 	SensorVersion int
 	WebPort       int
-	Logger        bunyan.Logger
 	Verbose       bool
 }
 
-func createLogger(verbose bool) bunyan.Logger {
-	logLevel := bunyan.LogLevelInfo
-	if verbose {
-		logLevel = bunyan.LogLevelDebug
-	}
-	loggerConfig := bunyan.Config{
-		Name:   "envsensor",
-		Stream: os.Stdout,
-		Level:  logLevel,
-	}
-
-	log, err := bunyan.CreateLogger(loggerConfig)
-	if err != nil {
-		panic(err)
-	}
-
-	return log
+func init() {
+	log.SetFormatter(&log.JSONFormatter{})
+	log.SetLevel(log.InfoLevel)
 }
 
 func main() {
@@ -51,9 +35,10 @@ func main() {
 
 	flag.Parse()
 
-	config.Logger = createLogger(config.Verbose)
-
-	config.Logger.Info("Welcome to envsensor, where it is our pleasure to probe you today.")
+	log.Info("Welcome to envsensor, where it is our pleasure to probe you today.")
+	if config.Verbose {
+		log.SetLevel(log.DebugLevel)
+	}
 
 	// Program internals now
 	readingsChan := make(chan envsensor.Reading)
@@ -63,7 +48,7 @@ func main() {
 	go sensor.Start(readingsChan)
 
 	// Serve readings, caching data up to a minute
-	server := envsensor.WebServer{}
 	port := fmt.Sprintf(":%d", int(config.WebPort))
-	server.Start(readingsChan, port, config.CacheDuration)
+	server := envsensor.NewWebServer(port, config.CacheDuration)
+	server.Start(readingsChan)
 }

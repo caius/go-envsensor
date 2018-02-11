@@ -3,19 +3,20 @@ package envsensor
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"text/template"
 	"time"
 )
 
 type WebServer struct {
+	listen        string
 	cacheDuration time.Duration
 	currentValue  CachedReading
 }
 
 func (h *WebServer) handleRoot(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("root request received")
+	log.Info("GET /")
 
 	if h.currentValue.IsStale() {
 		var s struct{}
@@ -26,7 +27,7 @@ func (h *WebServer) handleRoot(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *WebServer) handleMetrics(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("metric request received")
+	log.Info("GET /metrics")
 
 	const metricsTemplate = `
 {{- if .Temperature -}}
@@ -53,22 +54,34 @@ humidity {{.Humidity}}
 }
 
 func (h *WebServer) subscribeToReadings(readings <-chan Reading) {
+	log.Debug("Subscribing to readings")
 	for reading := range readings {
-		fmt.Printf("Got reading! t=%f, h=%f\n", reading.Temperature, reading.Humidity)
+		log.WithFields(log.Fields{
+			"reading": reading,
+		}).Info("Received reading")
+
 		cachedReading := NewCachedReading(reading, h.cacheDuration)
 		h.currentValue = cachedReading
+	}
+	log.Debug("Finished listening for readings")
+}
+
+func NewWebServer(listen string, cacheDuration time.Duration) WebServer {
+	return WebServer{
+		listen:        listen,
+		cacheDuration: cacheDuration,
 	}
 }
 
 // Blocks and listens for http calls
-func (h *WebServer) Start(readings <-chan Reading, listen string, cacheDuration time.Duration) {
+func (h *WebServer) Start(readings <-chan Reading) {
 	// Subscribe to readings & cache them for duration
-	h.cacheDuration = cacheDuration
 	go h.subscribeToReadings(readings)
 
 	// Handle HTTP calls
 	http.HandleFunc("/", h.handleRoot)
 	http.HandleFunc("/metrics", h.handleMetrics)
-	fmt.Printf("Waiting to answer all your requests on :8080\n")
-	http.ListenAndServe(listen, nil)
+
+	h.log.Info("Waiting to answer all your requests on %s", h.listen)
+	http.ListenAndServe(h.listen, nil)
 }

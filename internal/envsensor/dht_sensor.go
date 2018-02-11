@@ -2,6 +2,7 @@ package envsensor
 
 import (
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -15,6 +16,7 @@ type DHTSensor struct {
 }
 
 func NewDHTSensor(version int, pin int, delay time.Duration) DHTSensor {
+	log.Debug("Creating DHT Sensor with version=%d, pin=%d, delay=%s", version, pin, delay)
 	return DHTSensor{
 		Version: version,
 		Pin:     pin,
@@ -32,7 +34,7 @@ func (s *DHTSensor) Start(readingsChan chan<- Reading) {
 	}
 
 	s.readingsChan = readingsChan
-	fmt.Printf("%d", s.Delay)
+	log.Info(s.Delay)
 	s.ticker = time.NewTicker(s.Delay)
 	s.Emitting = true
 
