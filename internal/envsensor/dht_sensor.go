@@ -14,8 +14,15 @@ type DHTSensor struct {
 	ticker       *time.Ticker
 }
 
+// Public: creates a configured DHTSensor instance
+//
 func NewDHTSensor(version int, pin int, delay time.Duration) DHTSensor {
-	log.Debug("Creating DHT Sensor with version=%d, pin=%d, delay=%s", version, pin, delay)
+	log.WithFields(log.Fields{
+		Version: version,
+		Pin:     pin,
+		Delay:   delay,
+	}).Debug("Creating DHTSensor")
+
 	return DHTSensor{
 		Version: version,
 		Pin:     pin,
