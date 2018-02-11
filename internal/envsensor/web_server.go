@@ -82,6 +82,6 @@ func (h *WebServer) Start(readings <-chan Reading) {
 	http.HandleFunc("/", h.handleRoot)
 	http.HandleFunc("/metrics", h.handleMetrics)
 
-	h.log.Info("Waiting to answer all your requests on %s", h.listen)
+	log.Info("Waiting to answer all your requests on %s", h.listen)
 	http.ListenAndServe(h.listen, nil)
 }
