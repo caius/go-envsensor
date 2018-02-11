@@ -33,7 +33,7 @@ func (s *DHTSensor) Start(readingsChan chan<- Reading) {
 
 	s.readingsChan = readingsChan
 	fmt.Printf("%d", s.Delay)
-	s.ticker = time.NewTicker(time.Second * time.Duration(s.Delay))
+	s.ticker = time.NewTicker(s.Delay)
 	s.Emitting = true
 
 	// Read and emit
