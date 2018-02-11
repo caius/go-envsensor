@@ -23,9 +23,6 @@ func NewDHTSensor(version int, pin int, delay time.Duration) DHTSensor {
 	}
 }
 
-// This needs overriding in OS specific files
-// func (s *DHTSensor) readSensor() Reading
-
 // Internal: call readSensor() every Delay seconds and emit reading to readingsChan
 func (s *DHTSensor) readAndEmit() {
 	for _ = range s.ticker.C {

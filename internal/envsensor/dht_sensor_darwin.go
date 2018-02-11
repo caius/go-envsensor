@@ -1,5 +1,7 @@
 package envsensor
 
+import ()
+
 // Override: fake sensor read for debugging on mac
 //
 // Obviously we can't attach a GPIO easily, so just fake out emitting every time
