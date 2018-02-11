@@ -1,14 +1,13 @@
 package envsensor
 
 import (
-	// "fmt"
 	"testing"
 	"time"
 )
 
 func TestNewCachedReading(t *testing.T) {
-	temp := 15.2
-	humd := 35.9
+	temp := float32(15.2)
+	humd := float32(35.9)
 
 	cr := NewCachedReading(Reading{Temperature: temp, Humidity: humd}, time.Second)
 	if cr.Temperature != temp {
