@@ -25,8 +25,23 @@ func NewDHTSensor(version int, pin int, delay time.Duration) DHTSensor {
 
 // Internal: call readSensor() every Delay seconds and emit reading to readingsChan
 func (s *DHTSensor) readAndEmit() {
+	reading, err := s.readSensor()
+	if err != nil {
+		log.Error("Error reading sensor")
+	} else {
+		// Take first reading *now*
+		s.readingsChan <- reading
+	}
+
+	// And then continue reading in future
 	for _ = range s.ticker.C {
-		s.readingsChan <- s.readSensor()
+		reading, err := s.readSensor()
+		if err != nil {
+			log.Error("Error reading sensor")
+		} else {
+			// Take first reading *now*
+			s.readingsChan <- reading
+		}
 	}
 }
 
