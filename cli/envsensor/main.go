@@ -33,8 +33,9 @@ func main() {
 	flag.IntVar(&config.SensorPin, "sensor-pin", 17, "GPIO Pin (Physical number) to communicate to sensor via")
 	flag.IntVar(&config.SensorVersion, "sensor-version", 11, "Which DHT sensor to talk to. 11 or 22.")
 	flag.IntVar(&config.WebPort, "web-port", 8080, "Port for webserver to listen on")
-	flag.StringVar(&config.MQTTBroker, "mqtt-server", "", "MQTT server location (eg mqtt.local:1883)")
-	flag.StringVar(&config.Location, "location", "test", "Location to report stats from")
+	flag.StringVar(&config.MQTTBroker, "mqtt-broker", "", "MQTT server address (eg mqtt.local:1883)")
+	// We emit to the topic envsensor/status/LOCATION
+	flag.StringVar(&config.Location, "location", "test", "Location identifier for emitted readings")
 	flag.BoolVar(&config.Verbose, "verbose", false, "Verbose output")
 
 	flag.Parse()
