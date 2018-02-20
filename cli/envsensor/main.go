@@ -14,6 +14,8 @@ type Configuration struct {
 	SensorPin     int
 	SensorVersion int
 	WebPort       int
+	MQTTBroker    string
+	Location      string
 	Verbose       bool
 }
 
@@ -31,6 +33,8 @@ func main() {
 	flag.IntVar(&config.SensorPin, "sensor-pin", 17, "GPIO Pin (Physical number) to communicate to sensor via")
 	flag.IntVar(&config.SensorVersion, "sensor-version", 11, "Which DHT sensor to talk to. 11 or 22.")
 	flag.IntVar(&config.WebPort, "web-port", 8080, "Port for webserver to listen on")
+	flag.StringVar(&config.MQTTBroker, "mqtt-server", "", "MQTT server location (eg mqtt.local:1883)")
+	flag.StringVar(&config.Location, "location", "test", "Location to report stats from")
 	flag.BoolVar(&config.Verbose, "verbose", false, "Verbose output")
 
 	flag.Parse()
@@ -44,6 +48,15 @@ func main() {
 	var readingChannels []chan envsensor.Reading
 	webChannel := make(chan envsensor.Reading)
 	readingChannels = append(readingChannels, webChannel)
+
+	// Wire up MQTT if we've a broker to publish to
+	if config.MQTTBroker != "" {
+		mqttChannel := make(chan envsensor.Reading)
+		readingChannels = append(readingChannels, mqttChannel)
+
+		publisher := envsensor.NewMQTTPublisher(config.MQTTBroker, config.Location)
+		go publisher.Start(mqttChannel)
+	}
 
 	// Start reading from sensor
 	sensor := envsensor.NewDHTSensor(config.SensorVersion, config.SensorPin, config.ProbeDelay)
