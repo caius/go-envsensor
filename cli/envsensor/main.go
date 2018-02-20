@@ -14,6 +14,8 @@ type Configuration struct {
 	SensorPin     int
 	SensorVersion int
 	WebPort       int
+	MQTTBroker    string
+	Location      string
 	Verbose       bool
 }
 
@@ -31,6 +33,9 @@ func main() {
 	flag.IntVar(&config.SensorPin, "sensor-pin", 17, "GPIO Pin (Physical number) to communicate to sensor via")
 	flag.IntVar(&config.SensorVersion, "sensor-version", 11, "Which DHT sensor to talk to. 11 or 22.")
 	flag.IntVar(&config.WebPort, "web-port", 8080, "Port for webserver to listen on")
+	flag.StringVar(&config.MQTTBroker, "mqtt-broker", "", "MQTT server address (eg mqtt.local:1883)")
+	// We emit to the topic envsensor/status/LOCATION
+	flag.StringVar(&config.Location, "location", "test", "Location identifier for emitted readings")
 	flag.BoolVar(&config.Verbose, "verbose", false, "Verbose output")
 
 	flag.Parse()
@@ -41,14 +46,25 @@ func main() {
 	}
 
 	// Program internals now
-	readingsChan := make(chan envsensor.Reading)
+	var readingChannels []chan envsensor.Reading
+	webChannel := make(chan envsensor.Reading)
+	readingChannels = append(readingChannels, webChannel)
+
+	// Wire up MQTT if we've a broker to publish to
+	if config.MQTTBroker != "" {
+		mqttChannel := make(chan envsensor.Reading)
+		readingChannels = append(readingChannels, mqttChannel)
+
+		publisher := envsensor.NewMQTTPublisher(config.MQTTBroker, config.Location)
+		go publisher.Start(mqttChannel)
+	}
 
 	// Start reading from sensor
 	sensor := envsensor.NewDHTSensor(config.SensorVersion, config.SensorPin, config.ProbeDelay)
-	go sensor.Start(readingsChan)
+	go sensor.Start(readingChannels)
 
 	// Serve readings, caching data up to a minute
 	port := fmt.Sprintf(":%d", int(config.WebPort))
 	server := envsensor.NewWebServer(port, config.CacheDuration)
-	server.Start(readingsChan)
+	server.Start(webChannel)
 }

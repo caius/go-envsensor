@@ -54,16 +54,16 @@ humidity {{.Humidity}}
 }
 
 func (h *WebServer) subscribeToReadings(readings <-chan Reading) {
-	log.Debug("Subscribing to readings")
+	log.Debug("WebServer subscribing to readings")
 	for reading := range readings {
 		log.WithFields(log.Fields{
 			"reading": reading,
-		}).Info("Received reading")
+		}).Info("WebServer received reading")
 
 		cachedReading := NewCachedReading(reading, h.cacheDuration)
 		h.currentValue = cachedReading
 	}
-	log.Debug("Finished listening for readings")
+	log.Debug("WebServer finished listening for readings")
 }
 
 func NewWebServer(listen string, cacheDuration time.Duration) WebServer {
@@ -82,6 +82,6 @@ func (h *WebServer) Start(readings <-chan Reading) {
 	http.HandleFunc("/", h.handleRoot)
 	http.HandleFunc("/metrics", h.handleMetrics)
 
-	log.Info("Waiting to answer all your requests on %s", h.listen)
+	log.Info("WebServer waiting to answer all your requests on ", h.listen)
 	http.ListenAndServe(h.listen, nil)
 }

@@ -10,7 +10,7 @@ type DHTSensor struct {
 	Pin          int
 	Delay        time.Duration
 	Version      int
-	readingsChan chan<- Reading
+	readingChans []chan Reading
 	ticker       *time.Ticker
 }
 
@@ -30,14 +30,16 @@ func NewDHTSensor(version int, pin int, delay time.Duration) DHTSensor {
 	}
 }
 
-// Internal: call readSensor() every Delay seconds and emit reading to readingsChan
+// Internal: call readSensor() every Delay seconds and emit reading to readingChans
 func (s *DHTSensor) readAndEmit() {
+	// Take/Publish first reading *now*
 	reading, err := s.readSensor()
 	if err != nil {
 		log.Error("Error reading sensor")
 	} else {
-		// Take first reading *now*
-		s.readingsChan <- reading
+		for _, c := range s.readingChans {
+			c <- reading
+		}
 	}
 
 	// And then continue reading in future
@@ -46,22 +48,23 @@ func (s *DHTSensor) readAndEmit() {
 		if err != nil {
 			log.Error("Error reading sensor")
 		} else {
-			// Take first reading *now*
-			s.readingsChan <- reading
+			for _, c := range s.readingChans {
+				c <- reading
+			}
 		}
 	}
 }
 
-// Start emitting sensor readings into `readingsChan` channel.
+// Start emitting sensor readings into `readingChans` channels.
 //
 // Only reads at most every `Delay` seconds from the sensor
-func (s *DHTSensor) Start(readingsChan chan<- Reading) {
+func (s *DHTSensor) Start(readingChans []chan Reading) {
 	if s.Emitting == true {
 		// Sensor is running already, stop it before we continue
 		s.Stop()
 	}
 
-	s.readingsChan = readingsChan
+	s.readingChans = readingChans
 	s.ticker = time.NewTicker(s.Delay)
 	s.Emitting = true
 
@@ -69,11 +72,13 @@ func (s *DHTSensor) Start(readingsChan chan<- Reading) {
 	s.readAndEmit()
 }
 
-// Stops a running sensor from reading/emitting readingsChan
+// Stops a running sensor from reading/emitting readingChans
 func (s *DHTSensor) Stop() {
 	if s.Emitting {
 		s.ticker.Stop()
-		close(s.readingsChan)
+		for _, c := range s.readingChans {
+			close(c)
+		}
 	}
 	s.Emitting = false
 }
