@@ -41,14 +41,16 @@ func main() {
 	}
 
 	// Program internals now
-	readingsChan := make(chan envsensor.Reading)
+	var readingChannels []chan envsensor.Reading
+	webChannel := make(chan envsensor.Reading)
+	readingChannels = append(readingChannels, webChannel)
 
 	// Start reading from sensor
 	sensor := envsensor.NewDHTSensor(config.SensorVersion, config.SensorPin, config.ProbeDelay)
-	go sensor.Start(readingsChan)
+	go sensor.Start(readingChannels)
 
 	// Serve readings, caching data up to a minute
 	port := fmt.Sprintf(":%d", int(config.WebPort))
 	server := envsensor.NewWebServer(port, config.CacheDuration)
-	server.Start(readingsChan)
+	server.Start(webChannel)
 }
