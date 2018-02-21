@@ -5,7 +5,6 @@ import (
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	log "github.com/sirupsen/logrus"
-	"os"
 )
 
 type MQTTPublisher struct {
@@ -54,12 +53,7 @@ func (p *MQTTPublisher) subscribeToReadings(readings <-chan Reading, client mqtt
 }
 
 func (p *MQTTPublisher) clientId() string {
-	h, err := os.Hostname()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return fmt.Sprintf("envsensor_%s", h)
+	return fmt.Sprintf("envsensor_%s", p.Location)
 }
 
 func (p *MQTTPublisher) Start(readings <-chan Reading) {
