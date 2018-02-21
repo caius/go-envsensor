@@ -5,6 +5,7 @@ import (
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	log "github.com/sirupsen/logrus"
+	"os"
 )
 
 type MQTTPublisher struct {
@@ -52,6 +53,15 @@ func (p *MQTTPublisher) subscribeToReadings(readings <-chan Reading, client mqtt
 	log.Debug("MQTTPublisher finished listening for readings")
 }
 
+func (p *MQTTPublisher) clientId() string {
+	h, err := os.Hostname()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return fmt.Sprintf("envsensor_%s", h)
+}
+
 func (p *MQTTPublisher) Start(readings <-chan Reading) {
 	log.WithFields(log.Fields{
 		"broker":   p.Broker,
@@ -60,7 +70,7 @@ func (p *MQTTPublisher) Start(readings <-chan Reading) {
 
 	mqttParams := mqtt.NewClientOptions()
 	mqttParams.AddBroker("tcp://mqtt1:1883")
-	mqttParams.SetClientID("msub")
+	mqttParams.SetClientID(p.clientId())
 
 	client := mqtt.NewClient(mqttParams)
 	client.Connect().Wait()
