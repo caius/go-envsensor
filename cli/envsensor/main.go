@@ -33,8 +33,8 @@ func main() {
 	config := Configuration{Valid: true}
 
 	// Sensor Configuration
-	flag.DurationVar(&config.ProbeDelay, "poll", (time.Second * 10), "How often to poll the sensor for a reading.")
 	flag.DurationVar(&config.CacheDuration, "cache", (time.Second * 60), "Max seconds to cache data for.")
+	flag.DurationVar(&config.ProbeDelay, "poll", (time.Second * 10), "How often to poll the sensor for a reading.")
 	flag.IntVar(&config.SensorPin, "sensor-pin", 0, "GPIO Pin (Physical number) to communicate to sensor on")
 	flag.IntVar(&config.SensorVersion, "sensor-version", 11, "Which DHT sensor to talk to. 11 or 22.")
 	flag.StringVar(&config.Location, "location", "", "Location identifier for emitted readings")
@@ -45,10 +45,17 @@ func main() {
 
 	// MQTT Configuration
 	flag.BoolVar(&config.MQTTEnabled, "mqtt", false, "Enable MQTT publishing")
-	flag.StringVar(&config.MQTTBroker, "mqtt-broker", "", "MQTT server address (eg mqtt.local:1883)")
+	flag.StringVar(&config.MQTTBroker, "mqtt-broker", "", "MQTT server (eg mqtt.local:1883)")
+
+	// Other configuration
 	flag.BoolVar(&config.Verbose, "verbose", false, "Verbose output")
 
 	flag.Parse()
+
+	log.Info("Welcome to envsensor, where it is our pleasure to probe you today.")
+	if config.Verbose {
+		log.SetLevel(log.DebugLevel)
+	}
 
 	// Check configuration is correct
 	if config.SensorVersion != 11 && config.SensorVersion != 22 {
@@ -61,23 +68,25 @@ func main() {
 		config.Valid = false
 	}
 
+	if config.MQTTEnabled && config.MQTTBroker == "" {
+		log.Error("--mqtt-broker is a required argument when --mqtt is passed")
+		config.Valid = false
+	}
+
 	if config.Valid != true {
-		log.Error("Configuration errors, please see above and fix")
+		log.Error("Configuration errors, please fix. Check logs for more information.")
 		os.Exit(1)
 	}
 
-	log.Info("Welcome to envsensor, where it is our pleasure to probe you today.")
-	if config.Verbose {
-		log.SetLevel(log.DebugLevel)
+	// Everything that wants to listen needs to put a channel in here
+	var readingChannels []chan envsensor.Reading
+
+	if config.MQTTEnabled == false && config.WebEnabled == false {
+		log.Info("Neither MQTT nor Web outputs are enabled. Not gonna do much.")
 	}
 
-	// Program internals now
-	var readingChannels []chan envsensor.Reading
-	webChannel := make(chan envsensor.Reading)
-	readingChannels = append(readingChannels, webChannel)
-
 	// Wire up MQTT if we've a broker to publish to
-	if config.MQTTBroker != "" {
+	if config.MQTTEnabled {
 		mqttChannel := make(chan envsensor.Reading)
 		readingChannels = append(readingChannels, mqttChannel)
 
@@ -85,12 +94,17 @@ func main() {
 		go publisher.Start(mqttChannel)
 	}
 
-	// Start reading from sensor
-	sensor := envsensor.NewDHTSensor(config.SensorVersion, config.SensorPin, config.ProbeDelay)
-	go sensor.Start(readingChannels)
+	if config.WebEnabled {
+		webChannel := make(chan envsensor.Reading)
+		readingChannels = append(readingChannels, webChannel)
 
-	// Serve readings, caching data up to a minute
-	port := fmt.Sprintf(":%d", int(config.WebPort))
-	server := envsensor.NewWebServer(port, config.CacheDuration)
-	server.Start(webChannel)
+		// Serve readings, caching data up to a minute
+		port := fmt.Sprintf(":%d", int(config.WebPort))
+		server := envsensor.NewWebServer(port, config.CacheDuration)
+		go server.Start(webChannel)
+	}
+
+	// And finally kick the sensor off (we have our reading )
+	sensor := envsensor.NewDHTSensor(config.SensorVersion, config.SensorPin, config.ProbeDelay)
+	sensor.Start(readingChannels)
 }
