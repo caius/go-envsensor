@@ -6,6 +6,7 @@ import (
 	"github.com/caius/go-envsensor/internal/envsensor"
 	log "github.com/sirupsen/logrus"
 	"os"
+	"os/signal"
 	"time"
 )
 
@@ -106,5 +107,17 @@ func main() {
 
 	// And finally kick the sensor off (we have our reading )
 	sensor := envsensor.NewDHTSensor(config.SensorVersion, config.SensorPin, config.ProbeDelay)
-	sensor.Start(readingChannels)
+	go sensor.Start(readingChannels)
+
+	// Trap and cleanup on interrupt (^C)
+	signalChan := make(chan os.Signal, 1)
+	cleanupDone := make(chan bool)
+	signal.Notify(signalChan, os.Interrupt)
+	go func() {
+		for _ = range signalChan {
+			log.Info("Received interrupt, bringing everything down")
+			cleanupDone <- true
+		}
+	}()
+	<-cleanupDone
 }
