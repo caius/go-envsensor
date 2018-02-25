@@ -15,6 +15,12 @@ type WebServer struct {
 	currentValue  CachedReading
 }
 
+type OutputReading struct {
+	Temperature float32 `json:"temperature"`
+	Humidity    float32 `json:"humidity"`
+	SensorType  string  `json:"sensor"`
+}
+
 func (h *WebServer) handleRoot(w http.ResponseWriter, r *http.Request) {
 	log.Info("GET /")
 
@@ -22,7 +28,12 @@ func (h *WebServer) handleRoot(w http.ResponseWriter, r *http.Request) {
 		var s struct{}
 		json.NewEncoder(w).Encode(s)
 	} else {
-		json.NewEncoder(w).Encode(h.currentValue.Reading)
+		outputReading := OutputReading{
+			Temperature: h.currentValue.Temperature,
+			Humidity:    h.currentValue.Humidity,
+			SensorType:  h.currentValue.SensorType,
+		}
+		json.NewEncoder(w).Encode(outputReading)
 	}
 }
 
