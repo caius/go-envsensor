@@ -1,6 +1,8 @@
 package envsensor
 
-import ()
+import (
+	"fmt"
+)
 
 // Override: fake sensor read for debugging on mac
 //
@@ -10,6 +12,7 @@ func (s *DHTSensor) readSensor() (Reading, error) {
 	reading := Reading{
 		Temperature: 15.2,
 		Humidity:    39.0,
+		SensorType:  fmt.Sprintf("DHT%d", s.Version),
 	}
 	return reading, nil
 }

@@ -16,6 +16,7 @@ type MQTTPublisher struct {
 type MQTTReadingMessage struct {
 	Temperature float32 `json:"temperature"`
 	Humidity    float32 `json:"humidity"`
+	SensorType  string  `json:"sensor"`
 }
 
 func NewMQTTPublisher(broker string, location string) MQTTPublisher {
@@ -35,6 +36,7 @@ func (p *MQTTPublisher) subscribeToReadings(readings <-chan Reading) {
 		msgReading := MQTTReadingMessage{
 			Temperature: reading.Temperature,
 			Humidity:    reading.Humidity,
+			SensorType:  reading.SensorType,
 		}
 
 		topic := fmt.Sprintf("envsensor/status/%s", p.Location)

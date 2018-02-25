@@ -41,6 +41,7 @@ func (s *DHTSensor) readSensor() (Reading, error) {
 	reading := Reading{
 		Temperature: temperature,
 		Humidity:    humidity,
+		SensorType:  fmt.Sprintf("DHT%d", s.Version),
 	}
 	return reading, nil
 }
