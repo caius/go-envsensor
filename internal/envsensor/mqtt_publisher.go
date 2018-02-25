@@ -63,7 +63,7 @@ func (p *MQTTPublisher) Start(readings <-chan Reading) {
 	}).Info("MQTTPublisher publishing")
 
 	mqttParams := mqtt.NewClientOptions()
-	mqttParams.AddBroker("tcp://mqtt1:1883")
+	mqttParams.AddBroker(fmt.Sprintf("tcp://%s", p.Broker))
 	mqttParams.SetClientID(p.clientId())
 
 	client := mqtt.NewClient(mqttParams)
