@@ -86,12 +86,15 @@ func main() {
 		log.Info("Neither MQTT nor Web outputs are enabled. Not gonna do much.")
 	}
 
+	var publisher envsensor.MQTTPublisher
+	var webserver envsensor.WebServer
+
 	// Wire up MQTT if we've a broker to publish to
 	if config.MQTTEnabled {
 		mqttChannel := make(chan envsensor.Reading)
 		readingChannels = append(readingChannels, mqttChannel)
 
-		publisher := envsensor.NewMQTTPublisher(config.MQTTBroker, config.Location)
+		publisher = envsensor.NewMQTTPublisher(config.MQTTBroker, config.Location)
 		go publisher.Start(mqttChannel)
 	}
 
@@ -101,8 +104,8 @@ func main() {
 
 		// Serve readings, caching data up to a minute
 		port := fmt.Sprintf(":%d", int(config.WebPort))
-		server := envsensor.NewWebServer(port, config.CacheDuration)
-		go server.Start(webChannel)
+		webserver = envsensor.NewWebServer(port, config.CacheDuration)
+		go webserver.Start(webChannel)
 	}
 
 	// And finally kick the sensor off (we have our reading )
@@ -116,8 +119,20 @@ func main() {
 	go func() {
 		for _ = range signalChan {
 			log.Info("Received interrupt, bringing everything down")
+
+			sensor.Stop()
+
+			if config.MQTTEnabled {
+				publisher.Stop()
+			}
+
+			if config.WebEnabled {
+				webserver.Stop()
+			}
+
 			cleanupDone <- true
 		}
 	}()
 	<-cleanupDone
+	log.Info("Goodbye!")
 }

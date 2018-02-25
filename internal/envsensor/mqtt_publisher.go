@@ -75,3 +75,7 @@ func (p *MQTTPublisher) Start(readings <-chan Reading) {
 
 	p.subscribeToReadings(readings, client)
 }
+
+func (p *MQTTPublisher) Stop() {
+	log.Info("MQTTPublisher received stop")
+}

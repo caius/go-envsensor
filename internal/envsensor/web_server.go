@@ -85,3 +85,6 @@ func (h *WebServer) Start(readings <-chan Reading) {
 	log.Info("WebServer waiting to answer all your requests on ", h.listen)
 	http.ListenAndServe(h.listen, nil)
 }
+
+// Noop
+func (h *WebServer) Stop() {}
