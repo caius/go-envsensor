@@ -9,10 +9,7 @@ import (
 // Obviously we can't attach a GPIO easily, so just fake out emitting every time
 // we'd read a sensor instead.
 func (s *DHTSensor) readSensor() (Reading, error) {
-	reading := Reading{
-		Temperature: 15.2,
-		Humidity:    39.0,
-		SensorType:  fmt.Sprintf("DHT%d", s.Version),
-	}
+	sensor := fmt.Sprintf("DHT%d", s.Version)
+	reading := NewReading(float32(15.2), float32(39.0), sensor)
 	return reading, nil
 }

@@ -38,10 +38,7 @@ func (s *DHTSensor) readSensor() (Reading, error) {
 		"retried":     retried,
 	}).Debug("Read sensor successfully")
 
-	reading := Reading{
-		Temperature: temperature,
-		Humidity:    humidity,
-		SensorType:  fmt.Sprintf("DHT%d", s.Version),
-	}
+	sensor := fmt.Sprintf("DHT%d", s.Version)
+	reading := NewReading(temperature, humidity, sensor)
 	return reading, nil
 }
