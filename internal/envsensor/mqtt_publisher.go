@@ -5,6 +5,7 @@ import (
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 type MQTTPublisher struct {
@@ -14,9 +15,10 @@ type MQTTPublisher struct {
 }
 
 type MQTTReadingMessage struct {
-	Temperature float32 `json:"temperature"`
-	Humidity    float32 `json:"humidity"`
-	SensorType  string  `json:"sensor"`
+	Temperature float32   `json:"temperature"`
+	Humidity    float32   `json:"humidity"`
+	SensorType  string    `json:"sensor"`
+	ReadAt      time.Time `json:"read_at"`
 }
 
 func NewMQTTPublisher(broker string, location string) MQTTPublisher {
@@ -37,6 +39,7 @@ func (p *MQTTPublisher) subscribeToReadings(readings <-chan Reading) {
 			Temperature: reading.Temperature,
 			Humidity:    reading.Humidity,
 			SensorType:  reading.SensorType,
+			ReadAt:      reading.ReadAt,
 		}
 
 		topic := fmt.Sprintf("envsensor/status/%s", p.Location)
