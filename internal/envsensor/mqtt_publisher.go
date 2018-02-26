@@ -97,6 +97,7 @@ func (p *MQTTPublisher) Start(readings <-chan Reading) {
 
 	// Tell everyone we're around & what we are
 	p.publishAvailability("online")
+	p.publishConfig()
 
 	// Do our job
 	p.subscribeToReadings(readings)
@@ -115,6 +116,48 @@ func (p *MQTTPublisher) publishAvailability(state string) {
 		0,
 		true,
 		state,
+	).Wait()
+}
+
+type HASSConfig struct {
+	DeviceClass       string `json:"device_class"`
+	Name              string `json:"name"`
+	StateTopic        string `json:"state_topic"`
+	AvailabilityTopic string `json:"availability_topic"`
+	Unit              string `json:"unit_of_measurement"`
+	Template          string `json:"value_template"`
+	ExpireAfter       int    `json:"expire_after"`
+}
+
+func (p *MQTTPublisher) publishConfig() {
+	log.Debugf("Publishing config for %s", p.Location)
+	p.client.Publish(
+		fmt.Sprintf("homeassistant/sensor/%s_temperature/config", p.Location),
+		0,
+		false,
+		HASSConfig{
+			DeviceClass:       "sensor",
+			Name:              fmt.Sprintf("%s Temperature", p.Location),
+			StateTopic:        fmt.Sprintf("envsensor/%s/status", p.Location),
+			AvailabilityTopic: fmt.Sprintf("envsensor/%s/available", p.Location),
+			Unit:              "C",
+			Template:          "{{ value_json.temperature }}",
+			ExpireAfter:       60,
+		},
+	).Wait()
+	p.client.Publish(
+		fmt.Sprintf("homeassistant/sensor/%s_humidity/config", p.Location),
+		0,
+		false,
+		HASSConfig{
+			DeviceClass:       "sensor",
+			Name:              fmt.Sprintf("%s Humidity", p.Location),
+			StateTopic:        fmt.Sprintf("envsensor/%s/status", p.Location),
+			AvailabilityTopic: fmt.Sprintf("envsensor/%s/available", p.Location),
+			Unit:              "C",
+			Template:          "{{ value_json.humidity }}",
+			ExpireAfter:       60,
+		},
 	).Wait()
 }
 
