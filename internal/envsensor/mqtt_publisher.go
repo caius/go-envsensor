@@ -74,6 +74,19 @@ func (p *MQTTPublisher) Start(readings <-chan Reading) {
 	mqttParams := mqtt.NewClientOptions()
 	mqttParams.AddBroker(fmt.Sprintf("tcp://%s", p.Broker))
 	mqttParams.SetClientID(p.clientId())
+	// Last Will & Testamant
+	mqttParams.SetWill(
+		fmt.Sprintf("envsensor/%s_temperature/available", p.Location),
+		"offline",
+		0,
+		true,
+	)
+	mqttParams.SetWill(
+		fmt.Sprintf("envsensor/%s_humidity/available", p.Location),
+		"offline",
+		0,
+		true,
+	)
 
 	p.client = mqtt.NewClient(mqttParams)
 	p.client.Connect().Wait()
