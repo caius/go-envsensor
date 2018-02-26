@@ -89,16 +89,37 @@ func (p *MQTTPublisher) Start(readings <-chan Reading) {
 	)
 
 	p.client = mqtt.NewClient(mqttParams)
-	p.client.Connect().Wait()
 
+	p.client.Connect().Wait()
 	log.WithFields(log.Fields{
 		"broker": p.Broker,
 	}).Info("MQTTPublisher connected to broker")
 
+	// Tell everyone we're around & what we are
+	p.publishAvailability("online")
+
+	// Do our job
 	p.subscribeToReadings(readings)
+}
+
+func (p *MQTTPublisher) publishAvailability(state string) {
+	log.Debugf("Publishing availability %s", state)
+	p.client.Publish(
+		fmt.Sprintf("envsensor/%s_temperature/available", p.Location),
+		0,
+		true,
+		state,
+	).Wait()
+	p.client.Publish(
+		fmt.Sprintf("envsensor/%s_humidity/available", p.Location),
+		0,
+		true,
+		state,
+	).Wait()
 }
 
 func (p *MQTTPublisher) Stop() {
 	log.Info("MQTTPublisher received stop")
+	p.publishAvailability("offline")
 	p.client.Disconnect(250)
 }
