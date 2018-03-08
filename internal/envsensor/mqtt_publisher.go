@@ -30,6 +30,7 @@ func NewMQTTPublisher(broker string, location string) MQTTPublisher {
 
 func (p *MQTTPublisher) subscribeToReadings(readings <-chan Reading) {
 	log.Debug("MQTTPublisher subscribing to readings")
+
 	for reading := range readings {
 		log.WithFields(log.Fields{
 			"reading": reading,
@@ -58,6 +59,7 @@ func (p *MQTTPublisher) subscribeToReadings(readings <-chan Reading) {
 			}
 		}
 	}
+
 	log.Debug("MQTTPublisher finished listening for readings")
 }
 
@@ -74,19 +76,6 @@ func (p *MQTTPublisher) Start(readings <-chan Reading) {
 	mqttParams := mqtt.NewClientOptions()
 	mqttParams.AddBroker(fmt.Sprintf("tcp://%s", p.Broker))
 	mqttParams.SetClientID(p.clientId())
-	// Last Will & Testamant
-	mqttParams.SetWill(
-		fmt.Sprintf("envsensor/%s_temperature/available", p.Location),
-		"offline",
-		0,
-		true,
-	)
-	mqttParams.SetWill(
-		fmt.Sprintf("envsensor/%s_humidity/available", p.Location),
-		"offline",
-		0,
-		true,
-	)
 
 	p.client = mqtt.NewClient(mqttParams)
 
@@ -101,64 +90,6 @@ func (p *MQTTPublisher) Start(readings <-chan Reading) {
 
 	// Do our job
 	p.subscribeToReadings(readings)
-}
-
-func (p *MQTTPublisher) publishAvailability(state string) {
-	log.Debugf("Publishing availability %s", state)
-	p.client.Publish(
-		fmt.Sprintf("envsensor/%s_temperature/available", p.Location),
-		0,
-		true,
-		state,
-	).Wait()
-	p.client.Publish(
-		fmt.Sprintf("envsensor/%s_humidity/available", p.Location),
-		0,
-		true,
-		state,
-	).Wait()
-}
-
-type HASSConfig struct {
-	DeviceClass       string `json:"device_class"`
-	Name              string `json:"name"`
-	StateTopic        string `json:"state_topic"`
-	AvailabilityTopic string `json:"availability_topic"`
-	Unit              string `json:"unit_of_measurement"`
-	Template          string `json:"value_template"`
-	ExpireAfter       int    `json:"expire_after"`
-}
-
-func (p *MQTTPublisher) publishConfig() {
-	log.Debugf("Publishing config for %s", p.Location)
-	p.client.Publish(
-		fmt.Sprintf("homeassistant/sensor/%s_temperature/config", p.Location),
-		0,
-		false,
-		HASSConfig{
-			DeviceClass:       "sensor",
-			Name:              fmt.Sprintf("%s Temperature", p.Location),
-			StateTopic:        fmt.Sprintf("envsensor/%s/status", p.Location),
-			AvailabilityTopic: fmt.Sprintf("envsensor/%s/available", p.Location),
-			Unit:              "C",
-			Template:          "{{ value_json.temperature }}",
-			ExpireAfter:       60,
-		},
-	).Wait()
-	p.client.Publish(
-		fmt.Sprintf("homeassistant/sensor/%s_humidity/config", p.Location),
-		0,
-		false,
-		HASSConfig{
-			DeviceClass:       "sensor",
-			Name:              fmt.Sprintf("%s Humidity", p.Location),
-			StateTopic:        fmt.Sprintf("envsensor/%s/status", p.Location),
-			AvailabilityTopic: fmt.Sprintf("envsensor/%s/available", p.Location),
-			Unit:              "C",
-			Template:          "{{ value_json.humidity }}",
-			ExpireAfter:       60,
-		},
-	).Wait()
 }
 
 func (p *MQTTPublisher) Stop() {
