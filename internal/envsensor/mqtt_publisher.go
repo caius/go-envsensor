@@ -5,16 +5,20 @@ import (
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 type MQTTPublisher struct {
 	Broker   string
 	Location string
+	client   mqtt.Client
 }
 
 type MQTTReadingMessage struct {
-	Temperature float32 `json:"temperature"`
-	Humidity    float32 `json:"humidity"`
+	Temperature float32   `json:"temperature"`
+	Humidity    float32   `json:"humidity"`
+	SensorType  string    `json:"sensor"`
+	ReadAt      time.Time `json:"read_at"`
 }
 
 func NewMQTTPublisher(broker string, location string) MQTTPublisher {
@@ -24,8 +28,9 @@ func NewMQTTPublisher(broker string, location string) MQTTPublisher {
 	}
 }
 
-func (p *MQTTPublisher) subscribeToReadings(readings <-chan Reading, client mqtt.Client) {
+func (p *MQTTPublisher) subscribeToReadings(readings <-chan Reading) {
 	log.Debug("MQTTPublisher subscribing to readings")
+
 	for reading := range readings {
 		log.WithFields(log.Fields{
 			"reading": reading,
@@ -34,6 +39,8 @@ func (p *MQTTPublisher) subscribeToReadings(readings <-chan Reading, client mqtt
 		msgReading := MQTTReadingMessage{
 			Temperature: reading.Temperature,
 			Humidity:    reading.Humidity,
+			SensorType:  reading.SensorType,
+			ReadAt:      reading.ReadAt,
 		}
 
 		topic := fmt.Sprintf("envsensor/status/%s", p.Location)
@@ -46,9 +53,13 @@ func (p *MQTTPublisher) subscribeToReadings(readings <-chan Reading, client mqtt
 				"topic":   topic,
 				"message": string(payload),
 			}).Debug("MQTTPublisher publishing")
-			client.Publish(topic, 0, false, string(payload)).Wait()
+
+			if p.client.IsConnected() {
+				p.client.Publish(topic, 0, false, string(payload)).Wait()
+			}
 		}
 	}
+
 	log.Debug("MQTTPublisher finished listening for readings")
 }
 
@@ -63,15 +74,21 @@ func (p *MQTTPublisher) Start(readings <-chan Reading) {
 	}).Info("MQTTPublisher publishing")
 
 	mqttParams := mqtt.NewClientOptions()
-	mqttParams.AddBroker("tcp://mqtt1:1883")
+	mqttParams.AddBroker(fmt.Sprintf("tcp://%s", p.Broker))
 	mqttParams.SetClientID(p.clientId())
 
-	client := mqtt.NewClient(mqttParams)
-	client.Connect().Wait()
+	p.client = mqtt.NewClient(mqttParams)
 
+	p.client.Connect().Wait()
 	log.WithFields(log.Fields{
 		"broker": p.Broker,
 	}).Info("MQTTPublisher connected to broker")
 
-	p.subscribeToReadings(readings, client)
+	// Do our job
+	p.subscribeToReadings(readings)
+}
+
+func (p *MQTTPublisher) Stop() {
+	log.Info("MQTTPublisher received stop")
+	p.client.Disconnect(250)
 }
