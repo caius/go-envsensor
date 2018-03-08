@@ -84,16 +84,11 @@ func (p *MQTTPublisher) Start(readings <-chan Reading) {
 		"broker": p.Broker,
 	}).Info("MQTTPublisher connected to broker")
 
-	// Tell everyone we're around & what we are
-	p.publishAvailability("online")
-	p.publishConfig()
-
 	// Do our job
 	p.subscribeToReadings(readings)
 }
 
 func (p *MQTTPublisher) Stop() {
 	log.Info("MQTTPublisher received stop")
-	p.publishAvailability("offline")
 	p.client.Disconnect(250)
 }
